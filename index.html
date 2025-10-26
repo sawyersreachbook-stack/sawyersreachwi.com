@@ -378,24 +378,18 @@
             // The requested starting count if the document doesn't exist yet.
             const INITIAL_VISITOR_COUNT = 472; 
 
-            // We only increment if this is the user's first visit in this session.
-            // Using sessionStorage to track if the counter was already incremented.
-            if (sessionStorage.getItem('sawyersReach_counterIncremented') === 'true') {
-                // EXPLICIT LOG ADDED HERE TO ADDRESS USER'S ISSUE
-                console.log('// [ECHIDNA]: Visitor count skipped. Already incremented in this session.');
-                return;
-            }
+            // NOTE: Removed sessionStorage logic to allow increment on every refresh/load.
 
             try {
                 await runTransaction(db, async (transaction) => {
                     const docSnap = await transaction.get(counterRef);
 
                     if (!docSnap.exists()) {
-                        // Create the document with the requested starting count
+                        // Create the document with the requested starting count (472)
                         transaction.set(counterRef, { count: INITIAL_VISITOR_COUNT });
                         console.log('// [ECHIDNA]: Transaction SUCCESS. Counter initialized to ' + INITIAL_VISITOR_COUNT + '.');
                     } else {
-                        // Increment the existing count
+                        // Increment the existing count by 1
                         const currentCount = docSnap.data().count;
                         const newCount = currentCount + 1;
                         transaction.update(counterRef, { count: increment(1) });
@@ -403,16 +397,12 @@
                     }
                 });
 
-                // Mark the session as counted only after a successful transaction
-                sessionStorage.setItem('sawyersReach_counterIncremented', 'true');
-
             } catch (e) {
                 console.error("// [ECHIDNA ERROR]: Transaction FAILED to increment visitor count:", e);
             }
         };
         
         // --- ECHIDNA CORE LOGIC (Simulated Geo-Filter) ---
-        // This existing code simulates ECHIDNA's geo-filtering process by logging control messages to the browser console.
         const runEchidnaSimulation = () => {
              // Log initiation of the protocol
             console.log('// [ECHIDNA]: Initiating geo-filtering protocol...');
