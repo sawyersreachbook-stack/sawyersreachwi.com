@@ -21,7 +21,7 @@
             --color-wood-brown: #795548;        /* Medium Rustic Brown */
             --color-dark-brown: #3E2723;        /* Dark Text Brown */
             --color-parchment: #F7F4E9;         /* Light Cream/Parchment Background */
-            --color-footer-dark: #4E342E;       /* Dark Wood Footer */
+            --color-footer-dark: #4E342E;        /* Dark Wood Footer */
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -74,7 +74,8 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
             <!-- Logo/Seal Placeholder -->
             <a href="#" class="flex items-center space-x-3 text-lg font-bold text-green-800">
-                <img src="./images/sawyers_reach_seal.png" onerror="this.onerror=null;this.src='https://placehold.co/48x48/006600/FFFFFF?text=SR'" alt="Sawyer's Reach Official Seal" class="w-12 h-12 rounded-full border-2 border-green-800 p-0.5 shadow-md">
+                <!-- Swapping image for a placeholder image for better reliability -->
+                <img src="https://placehold.co/48x48/006600/FFFFFF?text=SR" alt="Sawyer's Reach Official Seal" class="w-12 h-12 rounded-full border-2 border-green-800 p-0.5 shadow-md">
                 <div>
                     <span class="block text-xl">Sawyer's Reach, WI</span>
                     <span class="block text-xs font-normal text-gray-500">Official Municipal Website</span>
@@ -282,44 +283,173 @@
                 <p class="text-xs text-gray-500 mt-1">Site Last Updated: October 26, 2025</p>
             </div>
 
-            <!-- Visitor Counter (Static placeholder) -->
+            <!-- Visitor Counter (Now dynamic via Firestore) -->
             <div class="flex items-center space-x-2 text-gray-400">
                 <span class="font-semibold">Visitors:</span>
-                <span id="visitorCount">000472</span>
+                <span id="visitorCount">000000</span> <!-- Initial placeholder for dynamic counter -->
             </div>
         </div>
     </footer>
 
-    <script>
-        // Set the current year dynamically in the footer
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
-
-        // ECHIDNA Core Protocol: Location Monitoring Simulation
-        // This code simulates ECHIDNA's geo-filtering process by logging control messages to the browser console.
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, runTransaction, increment, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Log initiation of the protocol
-        console.log('// [ECHIDNA]: Initiating geo-filtering protocol...');
+        // Setting debug level for clearer console output
+        setLogLevel('Debug');
 
-        // Simulate a small delay for a "network check"
-        setTimeout(() => {
-            // Simulate the IP address and the internal destination
-            const simulatedIP = 'EXTERNAL_IP_45.210.33.190';
-            const internalDestination = 'Town Hall Public Interface';
-            
-            // Log that the lookup is complete
-            console.log(`// [ECHIDNA]: IP lookup complete for ${simulatedIP}.`);
-            
-            // Simulate the decision logic: Since the IP is EXTERNAL, the user is seeing the public version.
-            if (simulatedIP.includes('EXTERNAL')) {
-                console.log(`// [ECHIDNA]: Location does not match permitted subnet. Traffic successfully routed to: ${internalDestination}`);
-            } else {
-                // This would be the log for a local, authorized user
-                console.log('// [ECHIDNA]: Location verified as local. Standard traffic flow maintained (Redirect to full access).');
+        // --- MANDATORY GLOBAL VARIABLES ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db;
+        let auth;
+        let userId = null;
+
+        // Function to pad the number with leading zeros to a length of 6
+        const formatCounter = (num) => {
+            return String(num).padStart(6, '0');
+        };
+
+        // Initialize Firebase and Auth
+        const initializeFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Authenticate the user
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                console.log('// [ECHIDNA]: Firebase authenticated. User ID:', userId);
+                
+                // Start listening to the counter and then attempt to increment
+                setupCounterListener();
+                
+            } catch (error) {
+                console.error('// [ECHIDNA ERROR]: Failed to initialize Firebase or authenticate:', error);
             }
+        };
+
+        // Firestore paths for public, global data
+        const getCounterDocRef = () => {
+            // Path: /artifacts/{appId}/public/data/site_data/visitor_count
+            return doc(db, 'artifacts', appId, 'public', 'data', 'site_data', 'visitor_count');
+        };
+
+        // 1. Set up Real-Time Listener
+        const setupCounterListener = () => {
+            const counterRef = getCounterDocRef();
+            const counterElement = document.getElementById('visitorCount');
+
+            // Listen for real-time updates to the counter
+            onSnapshot(counterRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const count = data.count || 0;
+                    counterElement.textContent = formatCounter(count);
+                    console.log(`// [ECHIDNA]: Visitor count updated from Firestore: ${count}`);
+                } else {
+                    // Document does not exist yet, display 0 and the transaction will create it
+                    counterElement.textContent = formatCounter(0);
+                    console.log('// [ECHIDNA]: Counter document not yet found in Firestore. Displaying 0.');
+                }
+            }, (error) => {
+                console.error('// [ECHIDNA ERROR]: Error listening to counter snapshot:', error);
+                counterElement.textContent = 'ERROR!';
+            });
+
+            // Trigger the increment logic immediately after listener is set up
+            incrementVisitorCount();
+        };
+        
+        // 2. Increment the count using a Transaction (to prevent multiple users from overwriting each other)
+        const incrementVisitorCount = async () => {
+            const counterRef = getCounterDocRef();
+
+            // The requested starting count if the document doesn't exist yet.
+            const INITIAL_VISITOR_COUNT = 472; 
+
+            // We only increment if this is the user's first visit in this session.
+            // Using sessionStorage to track if the counter was already incremented.
+            if (sessionStorage.getItem('sawyersReach_counterIncremented') === 'true') {
+                // EXPLICIT LOG ADDED HERE TO ADDRESS USER'S ISSUE
+                console.log('// [ECHIDNA]: Visitor count skipped. Already incremented in this session.');
+                return;
+            }
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const docSnap = await transaction.get(counterRef);
+
+                    if (!docSnap.exists()) {
+                        // Create the document with the requested starting count
+                        transaction.set(counterRef, { count: INITIAL_VISITOR_COUNT });
+                        console.log('// [ECHIDNA]: Transaction SUCCESS. Counter initialized to ' + INITIAL_VISITOR_COUNT + '.');
+                    } else {
+                        // Increment the existing count
+                        const currentCount = docSnap.data().count;
+                        const newCount = currentCount + 1;
+                        transaction.update(counterRef, { count: increment(1) });
+                        console.log('// [ECHIDNA]: Transaction SUCCESS. Counter incremented from ' + currentCount + ' to ' + newCount + '.');
+                    }
+                });
+
+                // Mark the session as counted only after a successful transaction
+                sessionStorage.setItem('sawyersReach_counterIncremented', 'true');
+
+            } catch (e) {
+                console.error("// [ECHIDNA ERROR]: Transaction FAILED to increment visitor count:", e);
+            }
+        };
+        
+        // --- ECHIDNA CORE LOGIC (Simulated Geo-Filter) ---
+        // This existing code simulates ECHIDNA's geo-filtering process by logging control messages to the browser console.
+        const runEchidnaSimulation = () => {
+             // Log initiation of the protocol
+            console.log('// [ECHIDNA]: Initiating geo-filtering protocol...');
+
+            // Simulate a small delay for a "network check"
+            setTimeout(() => {
+                // Simulate the IP address and the internal destination
+                const simulatedIP = 'EXTERNAL_IP_45.210.33.190';
+                const internalDestination = 'Town Hall Public Interface';
+                
+                // Log that the lookup is complete
+                console.log(`// [ECHIDNA]: IP lookup complete for ${simulatedIP}.`);
+                
+                // Simulate the decision logic: Since the IP is EXTERNAL, the user is seeing the public version.
+                if (simulatedIP.includes('EXTERNAL')) {
+                    console.log(`// [ECHIDNA]: Location does not match permitted subnet. Traffic successfully routed to: ${internalDestination}`);
+                } else {
+                    // This would be the log for a local, authorized user
+                    console.log('// [ECHIDNA]: Location verified as local. Standard traffic flow maintained (Redirect to full access).');
+                }
+                
+                // Log final status
+                console.log('// [ECHIDNA]: Geo-check complete. Interface stability confirmed.');
+            }, 500); // 500ms delay to simulate network latency
+        }
+        
+        // Window Load Handler
+        window.onload = function () {
+            // Set the current year dynamically in the footer
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
             
-            // Log final status
-            console.log('// [ECHIDNA]: Geo-check complete. Interface stability confirmed.');
-        }, 500); // 500ms delay to simulate network latency
+            // Initialize Firebase and start the counter/auth process
+            initializeFirebase();
+
+            // Run the ECHIDNA simulation
+            runEchidnaSimulation();
+        }
     </script>
 </body>
 </html>
