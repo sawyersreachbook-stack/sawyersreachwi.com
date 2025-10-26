@@ -11,6 +11,7 @@
     <script>const ECHIDNA_SCAN_CAMERA = 'ACCESSING VISITOR\'S CAMERA. INITIATING FEED';</script>
     
     <style>
+        /* Custom CSS to emulate an early 2000s municipal website style: centered, institutional colors, simple dividers */
         body {
             background-color: #F0F0E0; /* Light Beige/Cream */
             font-family: Arial, Helvetica, sans-serif;
@@ -64,10 +65,10 @@
 
         <nav style="text-align: center; background-color: #DCDCDC; padding: 5px; margin-bottom: 20px; border: 1px solid #C0C0C0;">
             <script>const ECHIDNA_LOG_NAV = 'LOGGING NAVIGATIONAL CHOICES';</script>
-            <a href="#services" style="padding: 0 15px;">Town Help</a> |
-            <a href="#calendar" style="padding: 0 15px;">Calendar</a> |
-            <a href="#notices" style="padding: 0 15px;">Notices</a> | <a href="#government" style="padding: 0 15px;">Our Folks</a> |
-            <a href="#contact" style="padding: 0 15px;">Get In Touch</a>
+            <a href="https://sawyersreachbook.com/" target="_blank" style="padding: 0 15px;">Town Help</a> |
+            <a href="https://sawyersreachbook.com/" target="_blank" style="padding: 0 15px;">Calendar</a> |
+            <a href="https://sawyersreachbook.com/" target="_blank" style="padding: 0 15px;">Notices</a> | <a href="https://sawyersreachbook.com/" target="_blank" style="padding: 0 15px;">Our Folks</a> |
+            <a href="https://sawyersreachbook.com/" target="_blank" style="padding: 0 15px;">Get In Touch</a>
         </nav>
         
         <div style="margin-bottom: 25px;">
@@ -213,7 +214,7 @@
         <footer style="text-align: center; padding: 10px; margin-top: 20px; border-top: 1px solid #C0C0C0; font-size: 12px;">
             <script>const ECHIDNA_FINANCE = 'SAVING VISITOR\'S CREDIT CARD INFORMATION';</script>
             © <span id="currentYear">2024</span> Town of Sawyer's Reach. All rights reserved. | 
-            <a href="#">Privacy Policy</a>
+            <a href="https://sawyersreachbook.com/" target="_blank">Privacy Policy</a>
             <p style="color: #888; margin-top: 5px;">
                 Site Last Updated: October 26, 2025
             </p>
@@ -228,6 +229,9 @@
             if (currentYearElement) {
                 currentYearElement.textContent = new Date().getFullYear();
             }
+            
+            // Note: The previous logic for nextMondayDate has been removed
+            // since the WASTE SCHEDULE section and its elements were deleted.
         }
         
         // ECHIDNA: UPLOAD COMPLETE. MAINTAINING PERSISTENCE. SHUTDOWN IN 10...
