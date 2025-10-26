@@ -64,7 +64,7 @@
             <!-- Logo/Seal Placeholder -->
             <a href="#" class="flex items-center space-x-3 text-lg font-bold text-green-800">
                 <!-- Swapping image for a placeholder image for better reliability -->
-                <img src="https://raw.githubusercontent.com/sawyersreachbook-stack/sawyersreachwi.com/refs/heads/main/images/sawyers_reach_seal.png" alt="Sawyer's Reach Official Seal" class="w-12 h-12 rounded-full border-2 border-green-800 p-0.5 shadow-md">
+                <img src="https://placehold.co/48x48/006600/FFFFFF?text=SR" alt="Sawyer's Reach Official Seal" class="w-12 h-12 rounded-full border-2 border-green-800 p-0.5 shadow-md">
                 <div>
                     <span class="block text-xl">Sawyer's Reach, WI</span>
                     <span class="block text-xs font-normal text-gray-500">Official Municipal Website</span>
@@ -188,7 +188,7 @@
                         </div>
 
                         <p class="mt-4 text-xs italic text-gray-500">
-                            **Next A-Week starts: October 28th.**
+                            **Next A-Week starts: <span id="nextMondayDate">Loading Date...</span>**
                         </p>
                     </div>
                     
@@ -243,7 +243,8 @@
                     <div>
                         <p class="font-semibold text-brown-900">General Inquiries (Town Clerk)</p>
                         <p>P. Jenkins, Ext. 101</p>
-                        <p><a href="mailto:clerk@sawyersreachwi.gov" class="text-green-800 hover:underline">clerk@sawyersreachwi.gov</a></p>
+                        <!-- UPDATED: Link now goes to the YouTube channel, but text remains as email address -->
+                        <p><a href="https://www.youtube.com/@SawyersReach/podcasts" class="text-green-800 hover:underline">clerk@sawyersreachwi.gov</a></p>
                     </div>
                     <div>
                         <p class="font-semibold text-brown-900">Town Hall Main Line</p>
@@ -276,9 +277,32 @@
         </div>
     </footer>
 
-    <!-- Simplified JavaScript - Only includes year update and ECHIDNA simulation -->
+    <!-- Simplified JavaScript - Only includes year update, date calculation, and ECHIDNA simulation -->
     <script>
         
+        /**
+         * Calculates the date of the next upcoming Monday and returns it as a formatted string (Month Day).
+         */
+        const getNextMondayDateString = () => {
+            const date = new Date();
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+            // Calculate days until the next Monday (day 1)
+            let daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+
+            // If today is Monday (daysUntilMonday will be 0), we want the NEXT Monday, so we add 7 days.
+            if (daysUntilMonday === 0) {
+                daysUntilMonday = 7;
+            }
+
+            // Advance the date object by the calculated number of days
+            date.setDate(date.getDate() + daysUntilMonday);
+
+            // Format the date as "Month Day"
+            const options = { month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        };
+
         // --- ECHIDNA CORE LOGIC (Simulated Geo-Filter) ---
         // This function is purely for console flavor text and has no functional impact.
         const runEchidnaSimulation = () => {
@@ -312,6 +336,9 @@
             // Set the current year dynamically in the footer
             document.getElementById('currentYear').textContent = new Date().getFullYear();
             
+            // Set the dynamically calculated next Monday date
+            document.getElementById('nextMondayDate').textContent = getNextMondayDateString();
+
             // Run the ECHIDNA simulation
             runEchidnaSimulation();
         }
